@@ -1,0 +1,17 @@
+#!name=X / Twitter 原生信息流去广告
+#!desc=清理 X 的推广帖、嵌套推广与视频流推广条目；保留正常帖子和分页游标；单文件、无外部脚本。
+#!author=Custom rule
+#!category=去广告
+#!system=ios
+#!date=2026-10-23
+# version: 1.0.0
+# HTTPS解密：请只对模块列出的主机启用；需安装并信任 Shadowrocket CA。
+# 原理：只删除具有明确 promoted 元数据/标识的数组条目，保留 cursor、普通推文与回复。
+# 适用 JSON 接口；无法修改证书绑定或 Protobuf/二进制格式的响应。
+# 若 X 打不开：关闭模块，检查 HTTPS 解密 / 证书绑定兼容情况。
+
+[Body Rewrite]
+http-response-jq ^https:\/\/(?:api\.twitter\.com|api\.x\.com|x\.com|twitter\.com)\/(?:(?:i\/api\/)?graphql\/|(?:i\/api\/)?2\/(?:timeline|search|video|guide)(?:\/|\?)|(?:i\/api\/)?1\.1\/(?:statuses\/home_timeline|search\/tweets)) 'def tag($s): (($s | type) == "string") and ($s | test("(^|[-_:])promoted([-_:]|$)"; "i")); def meta($o): (($o | type) == "object") and (($o.promotedMetadata? != null) or ($o.promoted_metadata? != null) or ($o.adMetadata? != null) or ($o.isPromoted? == true)); def item_ad($o): meta($o) or meta($o.itemContent?) or meta($o.content?.itemContent?) or meta($o.item?.itemContent?) or meta($o.item?.content?.itemContent?); def ad: if type == "object" then (tag(.entryId? // .entry_id? // .entry_id_str? // "") or item_ad(.) or (if (.entry? | type) == "object" then (tag(.entry.entryId? // .entry.entry_id? // "") or item_ad(.entry)) else false end)) else false end; walk(if type == "array" then map(select(ad | not)) else . end)'
+
+[MITM]
+hostname = %APPEND% api.twitter.com, api.x.com, x.com, twitter.com
