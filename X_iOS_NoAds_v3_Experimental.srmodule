@@ -1,0 +1,11 @@
+#!name=X 原生App广告过滤 v3
+#!desc=适配更广的 iOS X 时间线接口；需要真实 HTTPS 解密；不能绕过原生客户端证书绑定。
+#!date=2026-10-23
+#!category=去广告
+# 先停用 v1/v2。仅用于确实已解密的 X JSON 接口。
+# 请不要在未经确认的情况下阻断整个 api.twitter.com 域名。
+[Body Rewrite]
+http-response-jq ^https:\/\/(?:api\.(?:twitter|x)\.com|(?:www\.)?(?:twitter|x)\.com)\/(?:(?:i\/api\/)?(?:graphql\/|2\/|1\.1\/)|graphql\/) 'def marked: if type=="object" then ((.entryId? // .entry_id? // "" | tostring | test("promoted|(^|[-_:])ad[-_:]";"i")) or (.promotedMetadata? != null) or (.promoted_metadata? != null) or (.adMetadata? != null) or (.promotedInfo? != null) or (.isPromoted? == true) or (.is_promoted? == true) or (.promoted? == true) or (.content?.itemContent?.promotedMetadata? != null) or (.content?.itemContent?.promoted_metadata? != null) or (.content?.itemContent?.adMetadata? != null) or (.content?.itemContent?.isPromoted? == true) or (.content?.content?.itemContent?.promotedMetadata? != null) or (.item?.itemContent?.promotedMetadata? != null) or (.item?.itemContent?.adMetadata? != null) or (.entry?.promotedMetadata? != null) or ((.entry?.entryId? // "" | tostring) | test("promoted";"i"))) else false end; def clean: if type=="array" then map(select(marked|not)|clean) elif type=="object" then with_entries(.value |= clean) else . end; clean'
+
+[MITM]
+hostname = %APPEND% api.twitter.com, api.x.com, x.com, twitter.com, www.x.com, www.twitter.com
