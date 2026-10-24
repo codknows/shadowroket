@@ -12,19 +12,20 @@ DOMAIN,static.ads-twitter.com,REJECT
 DOMAIN,ads-twitter.com,REJECT
 DOMAIN,analytics.twitter.com,REJECT
 DOMAIN,advertising.twitter.com,REJECT
-# 禁用 QUIC，强制走 TCP，保证 MITM 脚本生效（若你已在全局规则中屏蔽 UDP 443，可删除此行）
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,x.com)),REJECT-NO-DROP
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,twitter.com)),REJECT-NO-DROP
-AND,((PROTOCOL,UDP),(DEST-PORT,443),(DOMAIN-SUFFIX,twimg.com)),REJECT-NO-DROP
+# 禁用 QUIC(HTTP/3)，强制走 TCP，否则 MITM 脚本可能完全不触发
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,x.com)),REJECT
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,twitter.com)),REJECT
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,twimg.com)),REJECT
 
 [URL Rewrite]
-# 推广内容上报 / 拉取接口
-^https?:\/\/(?:api|x|twitter)\.(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/promoted_content\/ - reject-dict
-^https?:\/\/(?:api|x|twitter)\.(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/ads\/ - reject-dict
+# 推广内容拉取接口
+^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/promoted_content\/ - reject-dict
+^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/ads\/ - reject-dict
 
 [Script]
-# 请把 script-path 换成你托管 x-adblock.js 的直链（如 GitHub Raw）
-x-adblock = type=http-response,pattern=^https?:\/\/(?:api\.|www\.)?(?:x|twitter)\.com\/(?:i\/api\/)?graphql\/[^\/]+\/(?:HomeTimeline|HomeLatestTimeline|TweetDetail|TweetResultByRestId|UserTweets|UserTweetsAndReplies|UserMedia|UserHighlightsTweets|SearchTimeline|ListLatestTweetsTimeline|GenericTimelineById|ExploreSidebar|ExplorePage|ConnectTabTimeline|CommunityTweetsTimeline|CommunitiesExploreTimeline|Likes|BookmarkSearchTimeline|Bookmarks|NotificationsTimeline|ImmersiveMedia|TrendHistory|ForYouExplore)(?:\?.*)?$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/YOUR_NAME/YOUR_REPO/main/x-adblock.js
+# 重要: 把 script-path 换成 x-adblock.js 的公网直链 (运行 make-link.sh 会自动替换)
+# pattern 匹配所有 GraphQL 接口 + 旧版 timeline / search / trends 接口，不再写死接口名
+x-adblock = type=http-response,pattern=^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?(?:graphql\/[^\/]+\/[^\/?]+|2\/(?:timeline|notifications|guide)\/[^?]*|1\.1\/(?:statuses|search|trends|guide|timeline)\/[^?]*)(?:\?.*)?$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/YOUR_NAME/YOUR_REPO/main/x-adblock.js
 
 [MITM]
 hostname = %APPEND% api.x.com, api.twitter.com, x.com, twitter.com
