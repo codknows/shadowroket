@@ -1,0 +1,31 @@
+#!name=X(Twitter) 去广告
+#!desc=移除 X 客户端时间线、评论区、搜索、探索页中的推广内容，并屏蔽广告相关域名
+#!category=AdBlock
+
+[Rule]
+# 广告 / 统计域名
+DOMAIN,ads-api.x.com,REJECT
+DOMAIN,ads-api.twitter.com,REJECT
+DOMAIN,ads.twitter.com,REJECT
+DOMAIN,ads.x.com,REJECT
+DOMAIN,static.ads-twitter.com,REJECT
+DOMAIN,ads-twitter.com,REJECT
+DOMAIN,analytics.twitter.com,REJECT
+DOMAIN,advertising.twitter.com,REJECT
+# 禁用 QUIC(HTTP/3)，强制走 TCP，否则 MITM 脚本可能完全不触发
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,x.com)),REJECT
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,twitter.com)),REJECT
+AND,((PROTOCOL,UDP),(DOMAIN-SUFFIX,twimg.com)),REJECT
+
+[URL Rewrite]
+# 推广内容拉取接口
+^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/promoted_content\/ - reject-dict
+^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?1\.1\/ads\/ - reject-dict
+
+[Script]
+# 重要: 把 script-path 换成 x-adblock.js 的公网直链 (运行 make-link.sh 会自动替换)
+# pattern 匹配所有 GraphQL 接口 + 旧版 timeline / search / trends 接口，不再写死接口名
+x-adblock = type=http-response,pattern=^https?:\/\/(?:[\w-]+\.)?(?:x|twitter)\.com\/(?:i\/api\/)?(?:graphql\/[^\/]+\/[^\/?]+|2\/(?:timeline|notifications|guide)\/[^?]*|1\.1\/(?:statuses|search|trends|guide|timeline)\/[^?]*)(?:\?.*)?$,requires-body=1,max-size=10485760,script-path=https://raw.githubusercontent.com/YOUR_NAME/YOUR_REPO/main/x-adblock.js
+
+[MITM]
+hostname = %APPEND% api.x.com, api.twitter.com, x.com, twitter.com
